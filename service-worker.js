@@ -3,10 +3,10 @@ self.addEventListener('install', (event) => {
     caches.open('batt-soc-cache').then((cache) => {
       return cache.addAll([
         '/',
-        'index.html',
-        'styles.css',
-        'script.js',
-        'battsoc.png'
+        '/index.html',
+        '/styles.css',
+        '/script.js',
+        '/battsoc.png'
       ]);
     })
   );
