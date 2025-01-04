@@ -1,7 +1,7 @@
 // Register Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js').then((registration) => {
+    navigator.serviceWorker.register('scripts/service-worker.js').then((registration) => {
       console.log('Service Worker registered with scope:', registration.scope);
     }).catch((error) => {
       console.log('Service Worker registration failed:', error);
@@ -15,14 +15,11 @@ const installButton = document.getElementById('install-btn');
 
 // Listen for the beforeinstallprompt event
 window.addEventListener('beforeinstallprompt', (event) => {
-  // Prevent the default browser install prompt
   event.preventDefault();
   deferredPrompt = event;
 
-  // Show the custom install button
   installButton.style.display = 'block';
 
-  // When the user clicks the install button, trigger the install prompt
   installButton.addEventListener('click', () => {
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then((choiceResult) => {
@@ -36,27 +33,31 @@ window.addEventListener('beforeinstallprompt', (event) => {
   });
 });
 
-// Restore last visited page on load
+// Restore last visited page on load and set initial progress bar value to 0
 window.onload = function () {
   const lastPage = localStorage.getItem("lastPage") || "home"; // Default to "home"
   navigateToPage(lastPage);
+
+  // Set initial progress bar value to 0
+  const progressBar = document.getElementById("progress-bar");
+  progressBar.style.width = "0%"; // Set the progress bar to 0%
+  progressBar.textContent = ""; // Clear any text in the progress bar
+
+  // Restore input values from localStorage
+  restoreInputValues();
 };
 
 function navigateToPage(pageId) {
-  // Save the current page to localStorage
   localStorage.setItem("lastPage", pageId);
 
-  // Hide all pages
   const pages = document.querySelectorAll(".page");
   pages.forEach((page) => (page.style.display = "none"));
 
-  // Show the selected page
   const selectedPage = document.getElementById(pageId);
   if (selectedPage) {
     selectedPage.style.display = "block";
   }
 
-  // Update navigation buttons (optional: add active styling)
   const navButtons = document.querySelectorAll(".nav-btn");
   navButtons.forEach((btn) => btn.classList.remove("active"));
 
@@ -71,82 +72,214 @@ function navigateToPage(pageId) {
 function toggleCellInput() {
   const batteryType = document.getElementById("battery-type").value;
   const cellCountGroup = document.getElementById("cell-count-group");
+  const voltageGroup = document.getElementById("voltage-group");
+  const currentMaxVoltageGroup = document.getElementById("current-max-voltage-group");
 
   if (batteryType === "lithium") {
     cellCountGroup.style.display = "block";
+    currentMaxVoltageGroup.style.display = "block";
+    voltageGroup.style.display = "none";
   } else {
     cellCountGroup.style.display = "none";
+    currentMaxVoltageGroup.style.display = "none";
+    voltageGroup.style.display = "block";
   }
 }
 
 function updateTotalVoltage() {
   const cellCount = parseInt(document.getElementById("cell-count").value);
-  
+
   if (isNaN(cellCount) || cellCount < 1) {
     document.getElementById("total-voltage").innerText = "Please enter a valid number of cells.";
     return;
   }
 
-  const nominalVoltage = cellCount * 3.6;  // Nominal voltage per cell for Lithium-Ion is 3.6V
-  const maxVoltage = cellCount * 4.2;      // Maximum voltage per cell for Lithium-Ion is 4.2V
+  const nominalVoltage = cellCount * 3.6;
+  const maxVoltage = cellCount * 4.2;
 
-  // Display total nominal and max voltage
-  document.getElementById("total-voltage").innerText = 
-    `Nominal Voltage: ${nominalVoltage.toFixed(1)}V | Max Voltage: ${maxVoltage.toFixed(1)}V`;
+  const totalVoltageDisplay = `Nominal Voltage: ${nominalVoltage.toFixed(1)}V | Max Voltage: ${maxVoltage.toFixed(1)}V`;
+  document.getElementById("total-voltage").innerText = totalVoltageDisplay;
+
+  console.log("Nominal Voltage: ", nominalVoltage);
+  console.log("Max Voltage: ", maxVoltage);
 }
 
-function calculateSoC() {
-  const voltage = parseFloat(document.getElementById("voltage").value);
-  const batteryType = document.getElementById("battery-type").value;
+// Reusable error-handling function
+function handleError(condition, errorMessage, progressBar, resultElement) {
+  if (condition) {
+    resultElement.innerText = errorMessage;
+    progressBar.style.width = "0%";  // Reset progress bar on error
+    return true;  // Return true to indicate an error occurred
+  }
+  return false;  // Return false if no error
+}
 
-  let minVoltage, maxVoltage;
+// Function to calculate degradation
+function calculateDegradation(totalPeakVoltage, currentMaxVoltage, totalMinVoltage) {
+  return ((totalPeakVoltage - currentMaxVoltage) / (totalPeakVoltage - totalMinVoltage)) * 100;
+}
+
+// Main function to calculate SoC
+function calculateSoC() {
+  const batteryType = document.getElementById("battery-type").value;
+  const resultElement = document.getElementById("result");
+  const progressBar = document.getElementById("progress-bar");
+  const voltageInput = document.getElementById("voltage");
+  const batteryHealthElement = document.getElementById("battery-health");
+  const degradationElement = document.getElementById("degradation");
+  const batteryHealthValue = document.getElementById("battery-health-value");
+  const replaceBatteryMessage = document.getElementById("replace-battery");
+
+  // Clear previous output
+  resultElement.innerText = "Enter details to calculate State of Charge.";
+  progressBar.style.width = "0%";
+  progressBar.setAttribute("data-critical", "false");
+  progressBar.setAttribute("data-low", "false");
+  voltageInput.disabled = false;
+  degradationElement.style.display = "none"; // Hide degradation by default
+  degradationElement.innerText = ""; // Clear any previous text
+  batteryHealthValue.innerText = "";
+  batteryHealthElement.style.display = "none";
+  replaceBatteryMessage.innerText = "";
+
+  // If no battery type is selected, show a message
+  if (!batteryType) {
+    resultElement.innerText = "Please select a battery type.";
+    progressBar.style.width = "0%";
+    return; // Exit function if no battery type is selected
+  }
 
   if (batteryType === "lithium") {
     const cellCountInput = document.getElementById("cell-count");
     const cellCount = parseInt(cellCountInput.value);
 
-    if (isNaN(cellCount) || cellCount < 1) {
-      document.getElementById("result").innerText = "Please enter a valid number of cells in series.";
-      document.getElementById("progress-bar").style.width = "0%";
+    // Validate cell count
+    if (handleError(isNaN(cellCount) || cellCount < 1, "Please enter a valid number of cells in series.", progressBar, resultElement)) return;
+
+    const currentMaxVoltageInput = document.getElementById("current-max-voltage");
+    const currentMaxVoltage = parseFloat(currentMaxVoltageInput.value);
+
+    const cellMinVoltage = 3.0; // 0% SoC per cell
+    const cellPeakVoltage = 4.2; // Peak voltage per cell (fully charged)
+    const totalPeakVoltage = cellCount * cellPeakVoltage;
+    const totalMinVoltage = cellCount * cellMinVoltage;
+
+    // Validate current max voltage
+    if (handleError(isNaN(currentMaxVoltage) || currentMaxVoltage > totalPeakVoltage, `Please enter a valid current max voltage. (Max: ${totalPeakVoltage.toFixed(1)}V)`, progressBar, resultElement)) return;
+
+    // Handle replacement condition
+    if (currentMaxVoltage <= totalMinVoltage) {
+      resultElement.innerText = "Battery needs to be replaced.";
+      progressBar.style.width = "0%";
+      progressBar.setAttribute("data-critical", "true");
+
+      // Display degradation
+      const degradation = calculateDegradation(totalPeakVoltage, currentMaxVoltage, totalMinVoltage);
+      degradationElement.style.display = "block"; // Show degradation when calculated
+      degradationElement.innerText = `Battery Degradation: ${Math.min(degradation, 100).toFixed(2)}%`;
+
+      voltageInput.disabled = true;
       return;
     }
 
-    localStorage.setItem("cellCount", cellCount);
+    const remainingVoltage = parseFloat(voltageInput.value);
 
-    const cellMinVoltage = 3.0; // 0% SoC per cell
-    const cellMaxVoltage = 4.2; // 100% SoC per cell
+    // Validate remaining voltage
+    if (handleError(isNaN(remainingVoltage) || remainingVoltage < totalMinVoltage || remainingVoltage > currentMaxVoltage, 
+                    `Please enter a valid remaining battery voltage. (Min: ${totalMinVoltage.toFixed(1)}V - Max: ${currentMaxVoltage.toFixed(1)}V)`, progressBar, resultElement)) return;
 
-    minVoltage = cellCount * cellMinVoltage;
-    maxVoltage = cellCount * cellMaxVoltage;
+    let soc = ((remainingVoltage - totalMinVoltage) / (currentMaxVoltage - totalMinVoltage)) * 100;
+    progressBar.style.width = `${soc}%`;
+
+    // Update progress bar color
+    if (soc <= 20) {
+      progressBar.setAttribute("data-critical", "true");
+      progressBar.setAttribute("data-low", "false");
+    } else if (soc <= 50) {
+      progressBar.setAttribute("data-critical", "false");
+      progressBar.setAttribute("data-low", "true");
+    } else {
+      progressBar.setAttribute("data-critical", "false");
+      progressBar.setAttribute("data-low", "false");
+    }
+
+    resultElement.innerText = `State of Charge: ${soc.toFixed(1)}%`;
+
+    // Calculate degradation
+    const degradation = calculateDegradation(totalPeakVoltage, currentMaxVoltage, totalMinVoltage);
+    degradationElement.style.display = "block"; // Show degradation when calculated
+    degradationElement.innerText = `Battery Degradation: ${Math.min(degradation, 100).toFixed(2)}%`;
+
+    // Display "Remaining Battery Health" only after valid calculation
+    const remainingHealth = 100 - degradation;
+    if (!isNaN(remainingHealth)) {
+      batteryHealthValue.innerText = `${remainingHealth.toFixed(2)}%`;
+      batteryHealthElement.style.display = "block";
+
+      // Show replacement message if degradation >= 40%
+      if (degradation >= 40) {
+        replaceBatteryMessage.innerText = "Consider replacing the battery.";
+      }
+    }
   } else if (batteryType === "lead-acid") {
-    minVoltage = 10.5;
-    maxVoltage = 12.8;
-  } else {
-    document.getElementById("result").innerText = "Invalid battery type.";
-    return;
+    const voltageInput = document.getElementById("voltage");
+    const remainingVoltage = parseFloat(voltageInput.value);
+
+    const leadAcidMinVoltage = 11.5; // Lead acid 0% SoC (12V battery)
+    const leadAcidMaxVoltage = 12.8; // Lead acid 100% SoC (12V battery)
+
+    // Validate remaining voltage
+    if (handleError(isNaN(remainingVoltage) || remainingVoltage < leadAcidMinVoltage || remainingVoltage > leadAcidMaxVoltage, 
+                    `Please enter a valid remaining battery voltage. (Min: ${leadAcidMinVoltage.toFixed(1)}V - Max: ${leadAcidMaxVoltage.toFixed(1)}V)`, progressBar, resultElement)) return;
+
+    let soc = ((remainingVoltage - leadAcidMinVoltage) / (leadAcidMaxVoltage - leadAcidMinVoltage)) * 100;
+    progressBar.style.width = `${soc}%`;
+
+    // Update progress bar color
+    if (soc <= 20) {
+      progressBar.setAttribute("data-critical", "true");
+      progressBar.setAttribute("data-low", "false");
+    } else if (soc <= 50) {
+      progressBar.setAttribute("data-critical", "false");
+      progressBar.setAttribute("data-low", "true");
+    } else {
+      progressBar.setAttribute("data-critical", "false");
+      progressBar.setAttribute("data-low", "false");
+    }
+
+    resultElement.innerText = `State of Charge: ${soc.toFixed(1)}%`;
+    batteryHealthValue.innerText = `${(100 - soc).toFixed(2)}%`; // Display remaining health for lead acid
+    batteryHealthElement.style.display = "block";
+
+    // Show replacement message for lead-acid battery
+    if (soc <= 20) {
+      replaceBatteryMessage.innerText = "Consider replacing the battery.";
+    } else {
+      replaceBatteryMessage.innerText = "";
+    }
   }
 
-  if (isNaN(voltage) || voltage < minVoltage || voltage > maxVoltage) {
-    document.getElementById("result").innerText = `Please enter a valid voltage (${minVoltage.toFixed(1)} - ${maxVoltage.toFixed(1)}V).`;
-    document.getElementById("progress-bar").style.width = "0%";
-    return;
+  // Save input values to localStorage
+  saveInputValues();
+}
+// Restore input values from localStorage
+function restoreInputValues() {
+  const batteryType = localStorage.getItem("battery-type");
+  const cellCount = localStorage.getItem("cell-count");
+  const currentMaxVoltage = localStorage.getItem("current-max-voltage");
+  const voltage = localStorage.getItem("voltage");
+
+  if (batteryType) {
+    document.getElementById("battery-type").value = batteryType;
+    toggleCellInput(); // Update cell input visibility based on selected battery type
   }
-
-  const soc = ((voltage - minVoltage) / (maxVoltage - minVoltage)) * 100;
-
-  const progressBar = document.getElementById("progress-bar");
-  progressBar.style.width = `${soc}%`;
-
-  if (soc <= 20) {
-    progressBar.setAttribute("data-critical", "true");
-    progressBar.setAttribute("data-low", "false");
-  } else if (soc <= 50) {
-    progressBar.setAttribute("data-critical", "false");
-    progressBar.setAttribute("data-low", "true");
-  } else {
-    progressBar.setAttribute("data-critical", "false");
-    progressBar.setAttribute("data-low", "false");
+  if (cellCount) {
+    document.getElementById("cell-count").value = cellCount;
   }
-
-  document.getElementById("result").innerText = `State of Charge: ${soc.toFixed(1)}%`;
+  if (currentMaxVoltage) {
+    document.getElementById("current-max-voltage").value = currentMaxVoltage;
+  }
+  if (voltage) {
+    document.getElementById("voltage").value = voltage;
+  }
 }
