@@ -1,7 +1,7 @@
 // Register Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/scripts/service-worker.js') // Ensure the path is correct
+    navigator.serviceWorker.register('/BattSoC/scripts/service-worker.js') // Adjust for GitHub Pages
       .then((registration) => {
         console.log('Service Worker registered with scope:', registration.scope);
       })
@@ -17,19 +17,27 @@ const installButton = document.getElementById('install-btn');
 
 // Listen for the beforeinstallprompt event
 window.addEventListener('beforeinstallprompt', (event) => {
-  // Prevent the default prompt
   event.preventDefault();
-  // Save the event so it can be triggered later
   deferredPrompt = event;
-  // Show the install button
   installButton.style.display = 'block';
 });
 
 // Handle the install button click
 installButton.addEventListener('click', () => {
-  // Show the prompt
+  installButton.style.display = 'none'; // Hide button after click
   deferredPrompt.prompt();
-  
+  deferredPrompt.userChoice.then((choiceResult) => {
+    console.log(`User choice: ${choiceResult.outcome}`);
+    deferredPrompt = null; // Reset prompt
+  });
+});
+
+// Optional: Check if app is already installed
+if (window.matchMedia('(display-mode: standalone)').matches) {
+  console.log('App is already installed');
+  installButton.style.display = 'none';
+}
+
   // Wait for the user's response to the prompt
   deferredPrompt.userChoice.then((choiceResult) => {
     console.log(choiceResult.outcome); // 'accepted' or 'dismissed'
