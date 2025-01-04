@@ -1,13 +1,11 @@
 // Register Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/BattSoC/scripts/service-worker.js') // Adjust for GitHub Pages
-      .then((registration) => {
-        console.log('Service Worker registered with scope:', registration.scope);
-      })
-      .catch((error) => {
-        console.log('Service Worker registration failed:', error);
-      });
+    navigator.serviceWorker.register('scripts/service-worker.js').then((registration) => {
+      console.log('Service Worker registered with scope:', registration.scope);
+    }).catch((error) => {
+      console.log('Service Worker registration failed:', error);
+    });
   });
 }
 
@@ -19,37 +17,21 @@ const installButton = document.getElementById('install-btn');
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
   deferredPrompt = event;
+
   installButton.style.display = 'block';
-});
 
-// Handle the install button click
-installButton.addEventListener('click', () => {
-  installButton.style.display = 'none'; // Hide button after click
-  deferredPrompt.prompt();
-  deferredPrompt.userChoice.then((choiceResult) => {
-    console.log(`User choice: ${choiceResult.outcome}`);
-    deferredPrompt = null; // Reset prompt
+  installButton.addEventListener('click', () => {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+      } else {
+        console.log('User dismissed the install prompt');
+      }
+      deferredPrompt = null;
+    });
   });
 });
-});
-
-// Optional: Check if app is already installed
-if (window.matchMedia('(display-mode: standalone)').matches) {
-  console.log('App is already installed');
-  installButton.style.display = 'none';
-}
-
-  // Wait for the user's response to the prompt
-  deferredPrompt.userChoice.then((choiceResult) => {
-    console.log(choiceResult.outcome); // 'accepted' or 'dismissed'
-    if (choiceResult.outcome === 'accepted') {
-      console.log('User accepted the A2HS prompt');
-    } else {
-      console.log('User dismissed the A2HS prompt');
-    }
-    // Reset the deferred prompt to null
-    deferredPrompt = null;
-  });
 
 // Restore last visited page on load and set initial progress bar value to 0
 window.onload = function () {
@@ -239,42 +221,47 @@ function calculateSoC() {
         replaceBatteryMessage.innerText = "Consider replacing the battery.";
       }
     }
- } else if (batteryType === "lead-acid") {
-  const voltageInput = document.getElementById("voltage");
-  const remainingVoltage = parseFloat(voltageInput.value);
+  } else if (batteryType === "lead-acid") {
+    const voltageInput = document.getElementById("voltage");
+    const remainingVoltage = parseFloat(voltageInput.value);
 
-  const leadAcidMinVoltage = 11.5; // Lead acid 0% SoC (12V battery)
-  const leadAcidMaxVoltage = 12.8; // Lead acid 100% SoC (12V battery)
+    const leadAcidMinVoltage = 11.5; // Lead acid 0% SoC (12V battery)
+    const leadAcidMaxVoltage = 12.8; // Lead acid 100% SoC (12V battery)
 
-  // Validate remaining voltage
-  if (handleError(isNaN(remainingVoltage) || remainingVoltage < leadAcidMinVoltage || remainingVoltage > leadAcidMaxVoltage, 
-                  `Please enter a valid remaining battery voltage. (Min: ${leadAcidMinVoltage.toFixed(1)}V - Max: ${leadAcidMaxVoltage.toFixed(1)}V)`, progressBar, resultElement)) return;
+    // Validate remaining voltage
+    if (handleError(isNaN(remainingVoltage) || remainingVoltage < leadAcidMinVoltage || remainingVoltage > leadAcidMaxVoltage, 
+                    `Please enter a valid remaining battery voltage. (Min: ${leadAcidMinVoltage.toFixed(1)}V - Max: ${leadAcidMaxVoltage.toFixed(1)}V)`, progressBar, resultElement)) return;
 
-  let soc = ((remainingVoltage - leadAcidMinVoltage) / (leadAcidMaxVoltage - leadAcidMinVoltage)) * 100;
-  progressBar.style.width = `${soc}%`;
+    let soc = ((remainingVoltage - leadAcidMinVoltage) / (leadAcidMaxVoltage - leadAcidMinVoltage)) * 100;
+    progressBar.style.width = `${soc}%`;
 
-  // Update progress bar color
-  if (soc <= 20) {
-    progressBar.setAttribute("data-critical", "true");
-    progressBar.setAttribute("data-low", "false");
-  } else if (soc <= 50) {
-    progressBar.setAttribute("data-critical", "false");
-    progressBar.setAttribute("data-low", "true");
-  } else {
-    progressBar.setAttribute("data-critical", "false");
-    progressBar.setAttribute("data-low", "false");
+    // Update progress bar color
+    if (soc <= 20) {
+      progressBar.setAttribute("data-critical", "true");
+      progressBar.setAttribute("data-low", "false");
+    } else if (soc <= 50) {
+      progressBar.setAttribute("data-critical", "false");
+      progressBar.setAttribute("data-low", "true");
+    } else {
+      progressBar.setAttribute("data-critical", "false");
+      progressBar.setAttribute("data-low", "false");
+    }
+
+    resultElement.innerText = `State of Charge: ${soc.toFixed(1)}%`;
+    batteryHealthValue.innerText = `${(100 - soc).toFixed(2)}%`; // Display remaining health for lead acid
+    batteryHealthElement.style.display = "block";
+
+    // Show replacement message for lead-acid battery
+    if (soc <= 20) {
+      replaceBatteryMessage.innerText = "Consider replacing the battery.";
+    } else {
+      replaceBatteryMessage.innerText = "";
+    }
   }
 
-  resultElement.innerText = `State of Charge: ${soc.toFixed(1)}%`;
-
-  // Remove remaining battery health display for lead-acid
-  batteryHealthValue.innerText = ""; // Clear any previous health value
-  batteryHealthElement.style.display = "none"; // Hide the health display for lead-acid
-}
   // Save input values to localStorage
   saveInputValues();
 }
-  
 // Restore input values from localStorage
 function restoreInputValues() {
   const batteryType = localStorage.getItem("battery-type");
