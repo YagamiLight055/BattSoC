@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BattSoC</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles/styles.css">
   <!-- Link to Manifest -->
   <link rel="manifest" href="manifest.json">
 </head>
@@ -13,7 +13,7 @@
     <header>
       <!-- Title and Image container -->
       <div class="header-content">
-        <img src="battsoc.png" alt="Battery Image" class="header-image">
+        <img src="icons/battsoc.png" alt="Battery Image" class="header-image">
         <h1>BattSoC</h1>
       </div>
       <nav>
@@ -24,8 +24,9 @@
     </header>
     <main>
       <div id="home" class="page" style="display: none;">
-        <h2>Welcome to the Battery SoC Web App</h2>
-        <p>This app calculates the state of charge for Lithium-Ion and Lead Acid batteries.</p>
+        <h2>Welcome to BattSoC</h2>
+        <p>Track the health and state of charge of your Lithium-Ion and lead-acid batteries with ease. Input your battery details to calculate the current state, check degradation, and make informed decisions about battery maintenance.</p>
+        <p>Get started by selecting your battery type and entering the necessary information!</p>
       </div>
       <div id="calculator" class="page" style="display: none;">
         <form id="soc-form">
@@ -33,7 +34,7 @@
             <label for="battery-type">Battery Type:</label>
             <select class="batt-type" id="battery-type" onchange="toggleCellInput()">
               <option value="" disabled selected>Select Battery Type</option>
-              <option value="lithium">Lithium-Ion</option>
+              <option value="lithium">Li-Ion (NMC)</option> <!-- Renamed this option -->
               <option value="lead-acid">Lead Acid (12V)</option>
             </select>
           </div>
@@ -44,10 +45,18 @@
           <!-- Add this div to display total voltage -->
           <div id="total-voltage" class="form-group" style="font-weight: bold;"></div>
 
-          <div class="form-group">
-            <label for="voltage">Battery Voltage:</label>
-            <input type="number" id="voltage" placeholder="Enter voltage (e.g., 12.8)" step="0.1">
+          <!-- New input for current max voltage -->
+          <div class="form-group" id="current-max-voltage-group" style="display: none;">
+            <label for="current-max-voltage">Current Max Voltage (V) at Full Charge:</label>
+            <input type="number" id="current-max-voltage" placeholder="Enter current max voltage" step="0.1">
           </div>
+
+          <!-- Renamed input field -->
+          <div class="form-group">
+            <label for="voltage">Remaining Battery Capacity (Volts):</label>
+            <input type="number" id="voltage" placeholder="Enter remaining capacity (e.g., 12.8)" step="0.1">
+          </div>
+          
           <button type="button" class="btn" onclick="calculateSoC()">Calculate</button>
         </form>
         <div class="output">
@@ -55,12 +64,26 @@
           <div class="progress-container">
             <div id="progress-bar" class="progress"></div>
           </div>
+          
+          <!-- Degradation Display -->
+          <div id="degradation" class="form-group" style="font-weight: bold; display: none;"></div>
+          
+          <!-- Battery health Display -->
+          <div id="battery-health" class="form-group" style="display: none;">
+            <p>Remaining Battery Health:</p>
+            <span id="battery-health-value"></span>  <!-- This span will contain the value -->
+          </div>
+
+          <!-- Consider replacing battery message -->
+          <p id="replace-battery" style="font-weight: bold; color: #f44336; text-align: center;"></p>
         </div>
       </div>
       <div id="about" class="page" style="display: none;">
-        <h2>About</h2>
-        <p>This web app helps you monitor the state of charge of your batteries.</p>
-      </div>
+       <h2>About BattSoC</h2>
+       <p>BattSoC is a web application designed to help you monitor the health and state of charge (SoC) of your batteries. Whether you use EV Li-Ion (NMC) or Lead Acid batteries, this app allows you to input key details like voltage, cell count, and current max voltage to calculate the SoC and track battery degradation.</p>
+       <p>With real-time feedback on battery health and degradation, BattSoC helps you make informed decisions about battery maintenance and replacements, ensuring optimal performance for your devices.</p>
+       <p>Start using BattSoC today to keep your batteries running at their best!</p>
+     </div>
     </main>
   </div>
   
@@ -71,6 +94,6 @@
     <p>&copy; 2025 BattSoC Calculator</p>
   </footer>
 
-  <script src="script.js"></script>
+  <script src="scripts/script.js"></script>
 </body>
 </html>
