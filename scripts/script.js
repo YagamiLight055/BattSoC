@@ -239,7 +239,7 @@ function calculateSoC() {
         replaceBatteryMessage.innerText = "Consider replacing the battery.";
       }
     }
-  } else if (batteryType === "lead-acid") {
+ } else if (batteryType === "lead-acid") {
   const voltageInput = document.getElementById("voltage");
   const remainingVoltage = parseFloat(voltageInput.value);
 
@@ -269,7 +269,7 @@ function calculateSoC() {
 
   // Remove remaining battery health display for lead-acid
   batteryHealthValue.innerText = ""; // Clear any previous health value
-  batteryHealthElement.style.display = "none"; // Hide health section for lead-acid
+  batteryHealthElement.style.display = "none"; // Hide the health display for lead-acid
 }
   // Save input values to localStorage
   saveInputValues();
