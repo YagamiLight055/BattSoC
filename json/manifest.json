@@ -2,7 +2,7 @@
   "name": "BattSoC",
   "short_name": "BattSoC",
   "description": "Battery State of Charge Calculator",
-  "start_url": "/BattSoC/",
+  "start_url": "/BattSoC/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#007bff",
