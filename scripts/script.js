@@ -31,6 +31,7 @@ installButton.addEventListener('click', () => {
     deferredPrompt = null; // Reset prompt
   });
 });
+});
 
 // Optional: Check if app is already installed
 if (window.matchMedia('(display-mode: standalone)').matches) {
