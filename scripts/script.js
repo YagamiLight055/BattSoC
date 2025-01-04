@@ -49,7 +49,6 @@ if (window.matchMedia('(display-mode: standalone)').matches) {
     // Reset the deferred prompt to null
     deferredPrompt = null;
   });
-});
 
 // Restore last visited page on load and set initial progress bar value to 0
 window.onload = function () {
