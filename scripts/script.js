@@ -273,6 +273,7 @@ function calculateSoC() {
 }
   // Save input values to localStorage
   saveInputValues();
+}
   
 // Restore input values from localStorage
 function restoreInputValues() {
