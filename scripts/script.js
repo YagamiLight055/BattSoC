@@ -19,6 +19,7 @@ window.addEventListener('beforeinstallprompt', (event) => {
   deferredPrompt = event;
 
   installButton.style.display = 'block';
+});
 
   installButton.addEventListener('click', () => {
     deferredPrompt.prompt();
@@ -31,7 +32,6 @@ window.addEventListener('beforeinstallprompt', (event) => {
       deferredPrompt = null;
     });
   });
-});
 
 // Restore last visited page on load and set initial progress bar value to 0
 window.onload = function () {
