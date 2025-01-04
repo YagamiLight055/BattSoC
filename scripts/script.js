@@ -240,46 +240,40 @@ function calculateSoC() {
       }
     }
   } else if (batteryType === "lead-acid") {
-    const voltageInput = document.getElementById("voltage");
-    const remainingVoltage = parseFloat(voltageInput.value);
+  const voltageInput = document.getElementById("voltage");
+  const remainingVoltage = parseFloat(voltageInput.value);
 
-    const leadAcidMinVoltage = 11.5; // Lead acid 0% SoC (12V battery)
-    const leadAcidMaxVoltage = 12.8; // Lead acid 100% SoC (12V battery)
+  const leadAcidMinVoltage = 11.5; // Lead acid 0% SoC (12V battery)
+  const leadAcidMaxVoltage = 12.8; // Lead acid 100% SoC (12V battery)
 
-    // Validate remaining voltage
-    if (handleError(isNaN(remainingVoltage) || remainingVoltage < leadAcidMinVoltage || remainingVoltage > leadAcidMaxVoltage, 
-                    `Please enter a valid remaining battery voltage. (Min: ${leadAcidMinVoltage.toFixed(1)}V - Max: ${leadAcidMaxVoltage.toFixed(1)}V)`, progressBar, resultElement)) return;
+  // Validate remaining voltage
+  if (handleError(isNaN(remainingVoltage) || remainingVoltage < leadAcidMinVoltage || remainingVoltage > leadAcidMaxVoltage, 
+                  `Please enter a valid remaining battery voltage. (Min: ${leadAcidMinVoltage.toFixed(1)}V - Max: ${leadAcidMaxVoltage.toFixed(1)}V)`, progressBar, resultElement)) return;
 
-    let soc = ((remainingVoltage - leadAcidMinVoltage) / (leadAcidMaxVoltage - leadAcidMinVoltage)) * 100;
-    progressBar.style.width = `${soc}%`;
+  let soc = ((remainingVoltage - leadAcidMinVoltage) / (leadAcidMaxVoltage - leadAcidMinVoltage)) * 100;
+  progressBar.style.width = `${soc}%`;
 
-    // Update progress bar color
-    if (soc <= 20) {
-      progressBar.setAttribute("data-critical", "true");
-      progressBar.setAttribute("data-low", "false");
-    } else if (soc <= 50) {
-      progressBar.setAttribute("data-critical", "false");
-      progressBar.setAttribute("data-low", "true");
-    } else {
-      progressBar.setAttribute("data-critical", "false");
-      progressBar.setAttribute("data-low", "false");
-    }
-
-    resultElement.innerText = `State of Charge: ${soc.toFixed(1)}%`;
-    batteryHealthValue.innerText = `${(100 - soc).toFixed(2)}%`; // Display remaining health for lead acid
-    batteryHealthElement.style.display = "block";
-
-    // Show replacement message for lead-acid battery
-    if (soc <= 20) {
-      replaceBatteryMessage.innerText = "Consider replacing the battery.";
-    } else {
-      replaceBatteryMessage.innerText = "";
-    }
+  // Update progress bar color
+  if (soc <= 20) {
+    progressBar.setAttribute("data-critical", "true");
+    progressBar.setAttribute("data-low", "false");
+  } else if (soc <= 50) {
+    progressBar.setAttribute("data-critical", "false");
+    progressBar.setAttribute("data-low", "true");
+  } else {
+    progressBar.setAttribute("data-critical", "false");
+    progressBar.setAttribute("data-low", "false");
   }
 
+  resultElement.innerText = `State of Charge: ${soc.toFixed(1)}%`;
+
+  // Remove remaining battery health display for lead-acid
+  batteryHealthValue.innerText = ""; // Clear any previous health value
+  batteryHealthElement.style.display = "none"; // Hide health section for lead-acid
+}
   // Save input values to localStorage
   saveInputValues();
-}
+  
 // Restore input values from localStorage
 function restoreInputValues() {
   const batteryType = localStorage.getItem("battery-type");
