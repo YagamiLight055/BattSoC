@@ -1,11 +1,13 @@
 // Register Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/scripts/service-worker.js').then((registration) => {
-      console.log('Service Worker registered with scope:', registration.scope);
-    }).catch((error) => {
-      console.log('Service Worker registration failed:', error);
-    });
+    navigator.serviceWorker.register('/scripts/service-worker.js') // Ensure the path is correct
+      .then((registration) => {
+        console.log('Service Worker registered with scope:', registration.scope);
+      })
+      .catch((error) => {
+        console.log('Service Worker registration failed:', error);
+      });
   });
 }
 
@@ -15,23 +17,31 @@ const installButton = document.getElementById('install-btn');
 
 // Listen for the beforeinstallprompt event
 window.addEventListener('beforeinstallprompt', (event) => {
+  // Prevent the default prompt
   event.preventDefault();
+  // Save the event so it can be triggered later
   deferredPrompt = event;
-
+  // Show the install button
   installButton.style.display = 'block';
 });
 
-  installButton.addEventListener('click', () => {
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then((choiceResult) => {
-      if (choiceResult.outcome === 'accepted') {
-        console.log('User accepted the install prompt');
-      } else {
-        console.log('User dismissed the install prompt');
-      }
-      deferredPrompt = null;
-    });
+// Handle the install button click
+installButton.addEventListener('click', () => {
+  // Show the prompt
+  deferredPrompt.prompt();
+  
+  // Wait for the user's response to the prompt
+  deferredPrompt.userChoice.then((choiceResult) => {
+    console.log(choiceResult.outcome); // 'accepted' or 'dismissed'
+    if (choiceResult.outcome === 'accepted') {
+      console.log('User accepted the A2HS prompt');
+    } else {
+      console.log('User dismissed the A2HS prompt');
+    }
+    // Reset the deferred prompt to null
+    deferredPrompt = null;
   });
+});
 
 // Restore last visited page on load and set initial progress bar value to 0
 window.onload = function () {
