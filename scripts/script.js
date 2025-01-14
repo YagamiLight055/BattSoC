@@ -77,7 +77,7 @@ function toggleCellInput() {
 
   if (batteryType === "lithium") {
     cellCountGroup.style.display = "block";
-    currentMaxVoltageGroup.style.display = "block";
+    currentMaxVoltageGroup.style.display = "none";
     voltageGroup.style.display = "none";
   } else {
     cellCountGroup.style.display = "none";
@@ -165,30 +165,30 @@ function calculateSoC() {
     const totalMinVoltage = cellCount * cellMinVoltage;
 
     // Validate current max voltage
-    if (handleError(isNaN(currentMaxVoltage) || currentMaxVoltage > totalPeakVoltage, `Please enter a valid current max voltage. (Max: ${totalPeakVoltage.toFixed(1)}V)`, progressBar, resultElement)) return;
+   // if (handleError(isNaN(currentMaxVoltage) || currentMaxVoltage > totalPeakVoltage, `Please enter a valid current max voltage. (Max: ${totalPeakVoltage.toFixed(1)}V)`, progressBar, resultElement)) return;
 
     // Handle replacement condition
-    if (currentMaxVoltage <= totalMinVoltage) {
+   /* if (currentMaxVoltage <= totalMinVoltage) {
       resultElement.innerText = "Battery needs to be replaced.";
       progressBar.style.width = "0%";
       progressBar.setAttribute("data-critical", "true");
 
       // Display degradation
       const degradation = calculateDegradation(totalPeakVoltage, currentMaxVoltage, totalMinVoltage);
-      degradationElement.style.display = "block"; // Show degradation when calculated
+      degradationElement.style.display = "none"; // Show degradation when calculated
       degradationElement.innerText = `Battery Degradation: ${Math.min(degradation, 100).toFixed(2)}%`;
 
       voltageInput.disabled = true;
       return;
-    }
+    } */
 
     const remainingVoltage = parseFloat(voltageInput.value);
 
     // Validate remaining voltage
-    if (handleError(isNaN(remainingVoltage) || remainingVoltage < totalMinVoltage || remainingVoltage > currentMaxVoltage, 
-                    `Please enter a valid remaining battery voltage. (Min: ${totalMinVoltage.toFixed(1)}V - Max: ${currentMaxVoltage.toFixed(1)}V)`, progressBar, resultElement)) return;
+    if (handleError(isNaN(remainingVoltage) || remainingVoltage < totalMinVoltage || remainingVoltage > totalPeakVoltage, 
+                    `Please enter a valid remaining battery voltage. (Min: ${totalMinVoltage.toFixed(1)}V - Max: ${totalPeakVoltage.toFixed(1)}V)`, progressBar, resultElement)) return;
 
-    let soc = ((remainingVoltage - totalMinVoltage) / (currentMaxVoltage - totalMinVoltage)) * 100;
+    let soc = ((remainingVoltage - totalMinVoltage) / (totalPeakVoltage - totalMinVoltage)) * 100;
     progressBar.style.width = `${soc}%`;
 
     // Update progress bar color
@@ -207,14 +207,14 @@ function calculateSoC() {
 
     // Calculate degradation
     const degradation = calculateDegradation(totalPeakVoltage, currentMaxVoltage, totalMinVoltage);
-    degradationElement.style.display = "block"; // Show degradation when calculated
+    degradationElement.style.display = "none"; // Show degradation when calculated
     degradationElement.innerText = `Battery Degradation: ${Math.min(degradation, 100).toFixed(2)}%`;
 
     // Display "Remaining Battery Health" only after valid calculation
     const remainingHealth = 100 - degradation;
     if (!isNaN(remainingHealth)) {
       batteryHealthValue.innerText = `${remainingHealth.toFixed(2)}%`;
-      batteryHealthElement.style.display = "block";
+      batteryHealthElement.style.display = "none";
 
       // Show replacement message if degradation >= 40%
       if (degradation >= 40) {
